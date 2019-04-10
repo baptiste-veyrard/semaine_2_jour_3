@@ -17,6 +17,16 @@ def login_twitter
 	return client
 end
 
+def twitter_streaming
+	client = Twitter::Streaming::Client.new do |config|
+		config.consumer_key        = ENV["TWITTER_CONSUMER_KEY"]
+		config.consumer_secret     = ENV["TWITTER_CONSUMER_SECRET"]
+		config.access_token        = ENV["TWITTER_ACCESS_TOKEN"]
+		config.access_token_secret = ENV["TWITTER_ACCESS_TOKEN_SECRET"]
+	end
+	return client
+end
+
 def pick_journalists(liste, nb)
 	journalists_picked = liste.sample(nb)
 end
@@ -36,4 +46,30 @@ def like_25
 		client.favorite(tweet)
 	end
 end
+
+def follow_20
+	client = login_twitter
+	users = []
+	client.search("#Bonjour_monde -rt", result_type: "recent").take(100).collect do |tweet|
+		unless tweet.user.screen_name == "BaptisteVey"
+			users <<	tweet.user.screen_name
+		end
+	end
+	users = users.uniq
+	users.each do |user|
+		client.follow(user)
+	end
+end
+
+def fav_and_follow_live
+	topics = ["#bonjour_monde"]
+	twitter_streaming.filter(track: topics.join(",")) do |object|
+		puts object.text if object.is_a?(Twitter::Tweet)
+		login_twitter.fav object
+		login_twitter.follow (object.user.screen_name)
+
+	end
+end
+
+fav_and_follow_live
 
